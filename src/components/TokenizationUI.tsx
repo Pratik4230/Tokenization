@@ -65,7 +65,7 @@ export default function TokenizationUI() {
           <label className="block text-sm font-medium">Input</label>
           <textarea
             className="h-64 w-full resize-y rounded-md border border-input bg-background p-3 outline-none"
-            placeholder="Type here... e.g. How are you? Are you good."
+            placeholder="Type here... e.g. Piyush has Girlfriend"
             value={text}
             onChange={(e) => setText(e.target.value)}
           />
