@@ -24,17 +24,48 @@ export default function TokenizationUI() {
   const hasCutie = useMemo(() => tokenIds.includes(SPECIAL_IDS.PIYUSH_IS_CUTIE), [tokenIds])
   const hasGirlfriend = useMemo(() => tokenIds.includes(SPECIAL_IDS.PIYUSH_HAS_GIRLFRIEND), [tokenIds])
 
+  // Decode panel state
+  const [decodeInput, setDecodeInput] = useState("")
+  const [decodeHoverIndex, setDecodeHoverIndex] = useState<number | null>(null)
+
+  const decodedIds = useMemo(() => {
+    const parts = decodeInput
+      .split(/[,-\s]+/)
+      .map((p) => p.trim())
+      .filter(Boolean)
+    const nums: number[] = []
+    for (const p of parts) {
+      const n = Number(p)
+      if (Number.isFinite(n)) nums.push(n)
+    }
+    return nums
+  }, [decodeInput])
+
+  const decodedTokens = useMemo(() => decodedIds.map((id) => idToLetter[id] ?? "?"), [decodedIds])
+  const decodedDisplayTokens = useMemo(
+    () =>
+      decodedIds.map((id) =>
+        id === SPECIAL_IDS.PIYUSH_IS_CUTIE
+          ? "Yes"
+          : id === SPECIAL_IDS.PIYUSH_HAS_GIRLFRIEND
+          ? "No"
+          : idToLetter[id] ?? "?"
+      ),
+    [decodedIds]
+  )
+  const decodedString = useMemo(() => decodedTokens.join("") || "", [decodedTokens])
+
   return (
     <div className="mx-auto max-w-6xl p-6">
       <h1 className="mb-4 text-2xl font-semibold"> Tokenization</h1>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Left: Input */}
-        <div className="space-y-2 rounded-lg bg-card ">
+        <div className="space-y-2 rounded-lg border-2 border-border bg-card p-3">
           <label className="block text-sm font-medium">Input</label>
           <textarea
             className="h-64 w-full resize-y rounded-md border border-input bg-background p-3 outline-none"
-            placeholder="Type here... e.g. How are you?"
+            placeholder="Type here... e.g. How are you? Are you good."
             value={text}
             onChange={(e) => setText(e.target.value)}
           />
@@ -88,7 +119,7 @@ export default function TokenizationUI() {
                     return (
                       <span
                         key={i}
-                        className={`rounded px-2 py-1 transition-colors ${isHover ? "ring-2 ring-black/30" : ""}`}
+                        className={`rounded px-2 py-1 transition-colors border border-black/5 ${isHover ? "ring-2 ring-black/20" : ""}`}
                         style={{ backgroundColor: color, color: "#111" }}
                         onMouseEnter={() => setHoverIndex(i)}
                         onMouseLeave={() => setHoverIndex(null)}
@@ -102,6 +133,55 @@ export default function TokenizationUI() {
               ) : (
                 <div className="text-sm text-muted-foreground">No IDs yet</div>
               )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Decode Panel */}
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="space-y-2 rounded-lg border-2 border-border bg-card p-3">
+          <label className="block text-sm font-medium">Decode (IDs → text) <span className="text-xs text-muted-foreground"> Eg: 404</span></label>
+          <input
+            className="w-full rounded-md border border-input bg-background p-2 outline-none"
+            placeholder="Comma or space separated IDs, e.g. 1, 123, 456"
+            value={decodeInput}
+            onChange={(e) => setDecodeInput(e.target.value)}
+          />
+        </div>
+        <div className="flex flex-col gap-4">
+          <div className="space-y-2">
+            <div className="text-sm font-medium">Decoded Tokens</div>
+            <div className="min-h-24 rounded-lg border-2 border-border bg-card p-3">
+              {decodedIds.length ? (
+                <div className="flex flex-wrap gap-2 text-sm">
+                  {decodedDisplayTokens.map((t, i) => {
+                    const color = pastelColor(i, decodedDisplayTokens.length)
+                    const isHover = decodeHoverIndex === i
+                    return (
+                      <span
+                        key={i}
+                        className={`rounded px-2 py-1 transition-colors border border-black/5 ${isHover ? "ring-2 ring-black/20" : ""}`}
+                        style={{ backgroundColor: color, color: "#111" }}
+                        onMouseEnter={() => setDecodeHoverIndex(i)}
+                        onMouseLeave={() => setDecodeHoverIndex(null)}
+                        title={`Index ${i}`}
+                      >
+                        "{t}"
+                      </span>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">No</div>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="text-sm font-medium">Decoded String</div>
+            <div className="min-h-12 rounded-lg border-2 border-border bg-card p-3 text-sm">
+              {decodedString || <span className="text-muted-foreground">No</span>}
             </div>
           </div>
         </div>

@@ -69,10 +69,19 @@ const charEntries = Array.from(Values).map((ch, idx) => [
 ]) as Array<[string, number]>
 
 const WORD_ID_START = LETTER_ID_OFFSET + Values.length
-const wordEntries = WordTokens.map((w, idx) => [
-  w,
-  WORD_ID_START + idx,
-]) as Array<[string, number]>
+
+// Assign word IDs while skipping any reserved special IDs
+const wordEntries: Array<[string, number]> = []
+{
+  let nextId = WORD_ID_START
+  for (const w of WordTokens) {
+    while (SPECIAL_SENTENCE_ID_SET.has(nextId)) {
+      nextId += 1
+    }
+    wordEntries.push([w, nextId])
+    nextId += 1
+  }
+}
 
 const specialEntries = SpecialSentences.map(([phrase, id]) => [phrase, id]) as Array<[string, number]>
 
@@ -93,56 +102,87 @@ const maxSpecialLength = SpecialSentences.reduce((m, [s]) => Math.max(m, s.lengt
 const wordSet = new Set(WordTokens)
 const maxWordLength = WordTokens.reduce((m, w) => Math.max(m, w.length), 0)
 
-export function encodeLetters(input: string): number[] {
-  const result: number[] = []
+// Helper matchers
+function matchSpecial(input: string, startIndex: number): { id: number; length: number } | null {
+  if (maxSpecialLength === 0) return null
+  const maxLen = Math.min(maxSpecialLength, input.length - startIndex)
+  for (let len = maxLen; len >= 2; len--) {
+    const candidate = input.slice(startIndex, startIndex + len)
+    const id = specialLookupLower.get(candidate.toLowerCase())
+    if (id !== undefined) return { id, length: len }
+  }
+  return null
+}
+
+function matchWord(input: string, startIndex: number): { id: number; length: number } | null {
+  if (maxWordLength === 0) return null
+  const maxLen = Math.min(maxWordLength, input.length - startIndex)
+  for (let len = maxLen; len >= 2; len--) {
+    const candidate = input.slice(startIndex, startIndex + len)
+    if (wordSet.has(candidate)) {
+      const id = letterToId[candidate]
+      if (id !== undefined) return { id, length: len }
+    }
+  }
+  return null
+}
+
+function matchChar(input: string, startIndex: number): { id: number; length: number } | null {
+  const ch = input[startIndex]
+  const id = letterToId[ch]
+  if (id !== undefined) return { id, length: 1 }
+  return null
+}
+
+export type EncodeOptions = {
+  strict?: boolean
+  unknownId?: number
+}
+
+export type EncodedSpan = {
+  id: number
+  text: string
+  start: number
+  end: number
+  originalText: string
+}
+
+export function encodeWithSpans(input: string, options?: EncodeOptions): EncodedSpan[] {
+  const spans: EncodedSpan[] = []
   let i = 0
   while (i < input.length) {
-    let matched = false
+    let m = matchSpecial(input, i)
+    if (!m) m = matchWord(input, i)
+    if (!m) m = matchChar(input, i)
 
-    // 1) Try special sentences first (case-insensitive, may include spaces)
-    if (maxSpecialLength > 0) {
-      const maxLen = Math.min(maxSpecialLength, input.length - i)
-      for (let len = maxLen; len >= 2; len--) {
-        const candidate = input.slice(i, i + len)
-        const id = specialLookupLower.get(candidate.toLowerCase())
-        if (id !== undefined) {
-          result.push(id)
-          i += len
-          matched = true
-          break
-        }
-      }
-      if (matched) continue
+    if (m) {
+      const tokenText = idToLetter[m.id] ?? input.slice(i, i + m.length)
+      spans.push({
+        id: m.id,
+        text: tokenText,
+        start: i,
+        end: i + m.length,
+        originalText: input.slice(i, i + m.length),
+      })
+      i += m.length
+      continue
     }
 
-    // 2) Try longest word (length >= 2)
-    if (maxWordLength > 0) {
-      const maxLen = Math.min(maxWordLength, input.length - i)
-      for (let len = maxLen; len >= 2; len--) {
-        const candidate = input.slice(i, i + len)
-        if (wordSet.has(candidate)) {
-          const id = letterToId[candidate]
-          if (id !== undefined) {
-            result.push(id)
-            i += len
-            matched = true
-            break
-          }
-        }
-      }
-      if (matched) continue
+    // Unknown handling
+    if (options?.strict) {
+      throw new Error(`Unknown token at position ${i}: ${JSON.stringify(input[i])}`)
     }
-
-    // 3) Fallback to single-character mapping
-    const ch = input[i]
-    const id = letterToId[ch]
-    if (id !== undefined) {
-      result.push(id)
+    if (typeof options?.unknownId === "number") {
+      spans.push({ id: options.unknownId, text: "", start: i, end: i + 1, originalText: input[i] })
     }
-    // Unknown characters are ignored
     i += 1
   }
-  return result
+  return spans
+}
+
+export function encodeLetters(input: string, options?: EncodeOptions): number[] {
+  const spans = encodeWithSpans(input, options)
+  return spans.map(s => s.id)
 }
 
 export function decodeLetters(ids: number[]): string {
