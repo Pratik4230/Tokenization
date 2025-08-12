@@ -4,7 +4,7 @@ import TokenizationUI from './components/TokenizationUI'
 function App() {
   return (
     <>
-    {/* Welocome I am  using Bun */}
+    {/* Welocome I am  using Bun as Bundler */}
       <TokenizationUI />
     </>
   )
