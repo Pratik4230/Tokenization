@@ -62,7 +62,7 @@ export default function TokenizationUI() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Left: Input */}
         <div className="space-y-2 rounded-lg border-2 border-border bg-card p-3">
-          <label className="block text-sm font-medium">Input</label>
+          <label className="block text-sm font-medium">Input (Encode) </label>
           <textarea
             className="h-64 w-full resize-y rounded-md border border-input bg-background p-3 outline-none"
             placeholder="Type here... e.g. Piyush has Girlfriend"
@@ -141,7 +141,7 @@ export default function TokenizationUI() {
       {/* Decode Panel */}
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="space-y-2 rounded-lg border-2 border-border bg-card p-3">
-          <label className="block text-sm font-medium">Decode (IDs → text) <span className="text-xs text-muted-foreground"> Eg: 404</span></label>
+          <label className="block text-sm font-medium">Decode (IDs → text) <span className="text-xs text-muted-foreground"> Eg: 404, 163, 1</span></label>
           <input
             className="w-full rounded-md border border-input bg-background p-2 outline-none"
             placeholder="Comma or space separated IDs, e.g. 1, 123, 456"
